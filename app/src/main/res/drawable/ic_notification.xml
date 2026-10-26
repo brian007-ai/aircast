@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status-bar glyph: a speaker with two sound arcs, so the ongoing cast is
+     recognisable at a glance as audio rather than as a screen recording. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4,9.5h3.2L12,5.4c0.6,-0.5 1.5,-0.1 1.5,0.7v11.8c0,0.8 -0.9,1.2 -1.5,0.7L7.2,14.5H4c-0.6,0 -1,-0.4 -1,-1v-3c0,-0.6 0.4,-1 1,-1z" />
+
+    <path
+        android:pathData="M16.2,8.6a5.4,5.4 0 0,1 0,6.8"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round" />
+
+    <path
+        android:pathData="M18.8,6.2a9,9 0 0,1 0,11.6"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round" />
+</vector>

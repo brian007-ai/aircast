@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Monochrome (themed-icon) variant: the droplet silhouette only. The
+     system tints it as one shape, so the sound bars are dropped rather than
+     turned into cut-outs that read as noise at small sizes. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,24
+            C54,24 34,50 34,64
+            a20,20 0 0,0 40,0
+            C74,50 54,24 54,24 Z" />
+</vector>
