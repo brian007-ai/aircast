@@ -157,7 +157,6 @@ airplay2-sender-cpp/    Vendored AirPlay 2 sender (patched — see NOTICE)
 third_party/mbedtls/    Crypto (git submodule, mbedtls-3.6.7)
 docs/                   Developer documentation (architecture, features,
                         pitfalls, build, testing, roadmap)
-dist/                   Prebuilt APK of the current version
 ```
 
 ## Known limitations

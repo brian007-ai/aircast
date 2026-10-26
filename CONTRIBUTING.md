@@ -26,7 +26,7 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties
 ./gradlew assembleDebug
 ```
 
-Toolchain: JDK 17+, `compileSdk 36`, `build-tools 35.0.0`,
+Toolchain: JDK 17+, `compileSdk 36`, `build-tools 36.0.0`,
 NDK `27.2.12479018`, CMake `3.22.1`. Only `arm64-v8a` is built.
 
 ## Where things live
@@ -37,10 +37,11 @@ NDK `27.2.12479018`, CMake `3.22.1`. Only `arm64-v8a` is built.
 | `app/src/main/cpp/native_sender.cpp` | JNI bridge: capture PCM into the sender's ring buffer |
 | `airplay2-sender-cpp/` | Vendored, patched AirPlay 2 sender (see `NOTICE` for the patches) |
 | `third_party/mbedtls` | Pinned submodule providing the crypto primitives |
-| `fastlane/metadata/android/` | F-Droid / Google Play store listing |
 
 The interesting protocol code is the vendored sender; the app itself is a
-capture-loop, a JNI bridge and one screen of UI.
+capture loop, a JNI bridge and the screens: `MainActivity`, `SettingsActivity`
+and the UI system under `Ui.java`, `GlassDrawable.java`, `GlassToggle.java`,
+`GlassSeekBar.java`, `GlassDialog.java` and `AuroraView.java`.
 
 ## Ground rules
 
