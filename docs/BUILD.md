@@ -117,6 +117,6 @@ zipalign -c -P 16 -v 4 app-debug.apk | tail -3
 1. 改 [app/build.gradle.kts](../app/build.gradle.kts) 的 `versionCode +1`、`versionName`。
 2. `./gradlew :app:assembleDebug`。
 3. 按第 7 节做三项校验。
-4. **用新文件名**另存一份构建产物（例如 `AirCast-1.0.15-debug.apk`），不要覆盖同名旧文件
+4. **用新文件名**另存一份构建产物（例如 `AirCast-1.0.0.apk`），不要覆盖同名旧文件
    ——否则装机时会被判定为"同一个版本"（[PITFALLS.md](PITFALLS.md) #13）。
 5. 提交 + 打 tag。

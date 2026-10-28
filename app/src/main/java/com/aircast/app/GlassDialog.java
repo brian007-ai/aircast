@@ -31,7 +31,6 @@ public final class GlassDialog extends Dialog {
         Window w = getWindow();
         if (w != null) {
             w.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         }
         setCanceledOnTouchOutside(true);
 
@@ -46,7 +45,6 @@ public final class GlassDialog extends Dialog {
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setBackground(ui.panel());
         panel.setPadding(ui.dp(22), ui.dp(22), ui.dp(22), ui.dp(18));
-        panel.setElevation(ui.dp(24));
 
         int width = Math.min(
                 activity.getResources().getDisplayMetrics().widthPixels - ui.dp(56),
@@ -121,6 +119,12 @@ public final class GlassDialog extends Dialog {
     @Override
     public void show() {
         super.show();
+        // The window only exists once the dialog is shown; sizing it earlier is
+        // ignored and would leave the dim backdrop wrapped around the panel.
+        Window w = getWindow();
+        if (w != null) {
+            w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        }
         panel.setAlpha(0f);
         panel.setScaleX(0.94f);
         panel.setScaleY(0.94f);

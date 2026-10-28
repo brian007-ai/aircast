@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Launcher icon: a glass droplet with a sound-wave core.
-
-  The droplet is a point at (54, 24) easing into a circle of radius 20 centred
-  at (54, 64). The bars are strokes with round caps rather than rounded
-  rectangles, which keeps every end true regardless of the icon mask.
-
-  Everything stays inside the 72 dp safe circle, so no mask crops the drop.
+  Launcher icon: Wi-Fi fan glyph in accent blue on the dark adaptive
+  background. The three bands are true concentric circular arcs sharing one
+  centre C = (12, 20) on the 24 dp grid, half-angle 45 deg, radial thickness
+  2.83 with a 2.83 gap between bands (radii 0-4.24 wedge, 7.07-9.90 middle,
+  12.73-15.56 outer).
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -14,28 +12,22 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <path
-        android:fillColor="#5AC8FA"
-        android:pathData="M54,24
-            C54,24 34,50 34,64
-            a20,20 0 0,0 40,0
-            C74,50 54,24 54,24 Z" />
+    <group
+        android:scaleX="2.9"
+        android:scaleY="2.9"
+        android:translateX="19.2"
+        android:translateY="18.6">
 
-    <path
-        android:pathData="M47,61 L47,75"
-        android:strokeColor="#07121F"
-        android:strokeWidth="4.4"
-        android:strokeLineCap="round" />
+        <path
+            android:fillColor="#5B9DFF"
+            android:pathData="M1,9l2,2c4.97,-4.97 13.03,-4.97 18,0l2,-2C16.93,2.93 7.08,2.93 1,9z" />
 
-    <path
-        android:pathData="M54,54 L54,73"
-        android:strokeColor="#07121F"
-        android:strokeWidth="4.4"
-        android:strokeLineCap="round" />
+        <path
+            android:fillColor="#5B9DFF"
+            android:pathData="M5,13l2,2c2.76,-2.76 7.24,-2.76 10,0l2,-2C15.14,9.14 8.87,9.14 5,13z" />
 
-    <path
-        android:pathData="M61,61 L61,75"
-        android:strokeColor="#07121F"
-        android:strokeWidth="4.4"
-        android:strokeLineCap="round" />
+        <path
+            android:fillColor="#F2F5F8"
+            android:pathData="M9,17l3,3 3,-3c-1.65,-1.66 -4.34,-1.66 -6,0z" />
+    </group>
 </vector>

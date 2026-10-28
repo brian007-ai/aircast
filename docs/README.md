@@ -25,5 +25,5 @@ Sonos / Apple TV 等 AirPlay 接收器。没有中转盒子、没有云端、没
 
 ## 版本
 
-当前源码版本：**1.0.15**（`versionCode 25`）。构建产物见
+当前源码版本：**1.0.0**（`versionCode 25`）。构建产物见
 [BUILD.md](BUILD.md) 的"产物校验"一节。

@@ -2,6 +2,7 @@ package com.aircast.app;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 
 /**
  * One place to read every user-facing knob, so the defaults and the clamps
@@ -21,6 +22,16 @@ public final class Settings {
     private static final String K_LOG_ENABLED = "log_enabled";  // boolean
     private static final String K_LOG_LEVEL = "log_level";      // "error".."debug"
     private static final String K_SKIP_DISCLOSURE = "skip_disclosure"; // boolean
+    private static final String K_THEME = "theme_mode";         // "system"|"light"|"dark"
+    private static final String K_LANGUAGE = "language";        // "system"|"en"|"zh"
+
+    // --- appearance ----------------------------------------------------
+    public static final String THEME_SYSTEM = "system";
+    public static final String THEME_LIGHT = "light";
+    public static final String THEME_DARK = "dark";
+    public static final String LANG_SYSTEM = "system";
+    public static final String LANG_EN = "en";
+    public static final String LANG_ZH = "zh";
 
     // --- ranges (mirrored in the settings UI) -------------------------
     public static final float LATENCY_MIN = 0.25f;
@@ -98,6 +109,31 @@ public final class Settings {
 
     public static void setDisclosureSkipped(Context ctx, boolean skip) {
         prefs(ctx).edit().putBoolean(K_SKIP_DISCLOSURE, skip).apply();
+    }
+
+    public static String getThemeMode(Context ctx) {
+        return prefs(ctx).getString(K_THEME, THEME_SYSTEM);
+    }
+
+    public static void setThemeMode(Context ctx, String mode) {
+        prefs(ctx).edit().putString(K_THEME, mode).apply();
+    }
+
+    /** Resolved light/dark flag: the explicit choice wins over the system mode. */
+    public static boolean isDark(Context ctx) {
+        String mode = getThemeMode(ctx);
+        if (THEME_DARK.equals(mode)) return true;
+        if (THEME_LIGHT.equals(mode)) return false;
+        return (ctx.getResources().getConfiguration().uiMode
+                & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    public static String getLanguage(Context ctx) {
+        return prefs(ctx).getString(K_LANGUAGE, LANG_SYSTEM);
+    }
+
+    public static void setLanguage(Context ctx, String lang) {
+        prefs(ctx).edit().putString(K_LANGUAGE, lang).apply();
     }
 
     private static int clamp(int v, int lo, int hi) {

@@ -3,21 +3,19 @@ package com.aircast.app;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.ColorStateList;
-import android.content.res.Configuration;
 import android.graphics.Color;
-import android.graphics.Outline;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.os.Build;
 import android.util.TypedValue;
-import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewOutlineProvider;
 import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -25,93 +23,74 @@ import android.widget.TextView;
 /**
  * Liquid-glass design system.
  *
- * The screens are built in code (no XML layouts), so this class owns the whole
- * visual language: two palettes that follow the system light/dark setting, the
- * glass material, the pill buttons, the grouped-list rows and the shared
- * spacing/typography ramp.
+ * This class is now a facade: the palette lives in {@link Palette}, the metric
+ * ramp in {@link Tokens}, and the materials in {@link GlassCard},
+ * {@link GlassRow}, {@link GlassButtons} and {@link GlassDrawable}. Screens keep
+ * talking to one object, so the visual language can change underneath without
+ * touching a single call site.
  *
  * Everything here is deliberately restrained: one translucent material, one
  * accent, hairline dividers, and generous corner radii. Adding a second shadow
  * style or a third accent is what makes this kind of skin look cheap.
  */
 public final class Ui {
-    public static final float CARD_RADIUS = 26f;
-    public static final float FIELD_RADIUS = 18f;
+    public static final float CARD_RADIUS = Tokens.RADIUS_CARD;
+    public static final float FIELD_RADIUS = Tokens.RADIUS_FIELD;
 
     public final boolean dark;
     public final int bgTop, bgMid, bgBottom;
     public final int blobA, blobB, blobC;
-    public final int glassTop, glassBottom, strokeTop, strokeBottom;
+    public final int glassTop, glassBottom, strokeTop, strokeBottom, glassSpec, glassShade;
     public final int textColor, dim, faint;
     public final int accent, danger;
     public final int fieldFill, dividerColor, trackColor;
     public final int trackFillStart, trackFillEnd;
     public final int accentFillTop, accentFillBottom;
     public final int stopFillTop, stopFillBottom;
+    public final int rippleRow, ripplePill, rippleOnAccent;
 
     private final Context ctx;
     private final float density;
     private final Typeface medium;
+    private final Palette p;
 
     public Ui(Context ctx) {
-        this.ctx = ctx.getApplicationContext();
+        this.ctx = ctx;
         density = this.ctx.getResources().getDisplayMetrics().density;
         medium = Typeface.create("sans-serif-medium", Typeface.NORMAL);
-        int mode = this.ctx.getResources().getConfiguration().uiMode
-                & Configuration.UI_MODE_NIGHT_MASK;
-        dark = mode == Configuration.UI_MODE_NIGHT_YES;
+        // The explicit day/night choice in Settings wins over the system mode.
+        dark = Settings.isDark(this.ctx);
+        p = dark ? Palette.dark() : Palette.light();
 
-        if (dark) {
-            bgTop = 0xFF060A12;
-            bgMid = 0xFF0A1120;
-            bgBottom = 0xFF101C33;
-            blobA = 0xA82F6BFF;
-            blobB = 0x8C7B5CFF;
-            blobC = 0x7A00C2B2;
-            glassTop = 0x24FFFFFF;
-            glassBottom = 0x0FFFFFFF;
-            strokeTop = 0x42FFFFFF;
-            strokeBottom = 0x14FFFFFF;
-            textColor = 0xFFF5F8FD;
-            dim = 0xFFA8B3C7;
-            faint = 0xFF7E8A9E;
-            accent = 0xFF5AC8FA;
-            danger = 0xFFFF453A;
-            fieldFill = 0x14FFFFFF;
-            dividerColor = 0x1FFFFFFF;
-            trackColor = 0x26FFFFFF;
-            trackFillStart = 0xFF7BD8FF;
-            trackFillEnd = 0xFF3A86FF;
-            accentFillTop = 0xFF63D2FF;
-            accentFillBottom = 0xFF2A6FE0;
-            stopFillTop = 0xFFFF6F66;
-            stopFillBottom = 0xFFD62B22;
-        } else {
-            bgTop = 0xFFF3F7FD;
-            bgMid = 0xFFE7EFFA;
-            bgBottom = 0xFFD8E6F7;
-            blobA = 0x8C74ADFF;
-            blobB = 0x7AA48FFF;
-            blobC = 0x6E5FD3C8;
-            glassTop = 0xBAFFFFFF;
-            glassBottom = 0x66FFFFFF;
-            strokeTop = 0xFFFFFFFF;
-            strokeBottom = 0x59FFFFFF;
-            textColor = 0xFF0B1220;
-            dim = 0xFF4E5B70;
-            faint = 0xFF76839A;
-            accent = 0xFF0A7BFF;
-            danger = 0xFFE8342B;
-            fieldFill = 0x70FFFFFF;
-            dividerColor = 0x16000000;
-            trackColor = 0x22000000;
-            trackFillStart = 0xFF3FA9FF;
-            trackFillEnd = 0xFF0A6BE0;
-            accentFillTop = 0xFF48B2FF;
-            accentFillBottom = 0xFF0A6BE0;
-            stopFillTop = 0xFFFF6B61;
-            stopFillBottom = 0xFFE03A30;
-        }
+        bgTop = p.bgTop;
+        bgMid = p.bgMid;
+        bgBottom = p.bgBottom;
+        blobA = p.blobA;
+        blobB = p.blobB;
+        blobC = p.blobC;
+        glassTop = p.glassTop;
+        glassBottom = p.glassBottom;
+        glassSpec = p.glassSpec;
+        glassShade = p.glassShade;
+        strokeTop = p.strokeTop;
+        strokeBottom = p.strokeBottom;
+        textColor = p.text;
+        dim = p.dim;
+        faint = p.faint;
+        accent = p.accent;
+        danger = p.danger;
+        fieldFill = p.fieldFill;
+        dividerColor = p.divider;
+        trackColor = p.track;
+        trackFillStart = p.trackFillStart;
+        trackFillEnd = p.trackFillEnd;
+        accentFillTop = p.accentFillTop;
+        accentFillBottom = p.accentFillBottom;
+        stopFillTop = p.stopFillTop;
+        stopFillBottom = p.stopFillBottom;
+        rippleRow = p.rippleRow;
+        ripplePill = p.ripplePill;
+        rippleOnAccent = p.rippleOnAccent;
     }
 
     // ── metrics ────────────────────────────────────────────────────────
@@ -132,15 +111,6 @@ public final class Ui {
         return g;
     }
 
-    private ViewOutlineProvider outline(final float radiusPx) {
-        return new ViewOutlineProvider() {
-            @Override
-            public void getOutline(View view, Outline outline) {
-                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), radiusPx);
-            }
-        };
-    }
-
     // ── type ──────────────────────────────────────────────────────────
 
     public TextView text(String s, float sizeSp, int color, boolean bold) {
@@ -154,50 +124,50 @@ public final class Ui {
 
     /** Large screen title, iOS-style tight tracking. */
     public TextView title(String s) {
-        TextView t = text(s, 32, textColor, true);
+        TextView t = text(s, Tokens.TYPE_TITLE, textColor, true);
         t.setLetterSpacing(-0.02f);
         t.setIncludeFontPadding(false);
         return t;
     }
 
     public TextView subtitle(String s) {
-        TextView t = text(s, 15, dim, false);
+        TextView t = text(s, Tokens.TYPE_BODY, dim, false);
         t.setLineSpacing(dpf(2), 1f);
         return t;
     }
 
     public TextView heading(String s) {
-        TextView t = text(s, 17, textColor, true);
+        TextView t = text(s, Tokens.TYPE_HEADING, textColor, true);
         t.setIncludeFontPadding(false);
         return t;
     }
 
     /** Uppercase caption that opens a group of rows. */
     public TextView section(String s) {
-        TextView t = text(s.toUpperCase(), 12, faint, true);
+        TextView t = text(s.toUpperCase(), Tokens.TYPE_SECTION, dim, true);
         t.setLetterSpacing(0.1f);
         return t;
     }
 
     public TextView body(String s) {
-        TextView t = text(s, 15, textColor, false);
+        TextView t = text(s, Tokens.TYPE_BODY, textColor, false);
         t.setLineSpacing(dpf(4), 1f);
         return t;
     }
 
     public TextView caption(String s) {
-        TextView t = text(s, 12, faint, false);
+        TextView t = text(s, Tokens.TYPE_CAPTION, dim, false);
         t.setLineSpacing(dpf(3), 1f);
         return t;
     }
 
     public TextView value(String s) {
-        return text(s, 14, accent, true);
+        return text(s, Tokens.TYPE_VALUE, accent, true);
     }
 
     public TextView chevron() {
-        TextView t = text("\u203A", 20, faint, false);
-        t.setPadding(dp(6), 0, 0, 0);
+        TextView t = text("\u203A", Tokens.TYPE_CHEVRON, faint, false);
+        t.setPadding(dp(Tokens.SPACE_2), 0, 0, 0);
         t.setIncludeFontPadding(false);
         return t;
     }
@@ -206,48 +176,56 @@ public final class Ui {
 
     public android.graphics.drawable.Drawable panel() {
         return new GlassDrawable(glassTop, glassBottom, strokeTop, strokeBottom,
-                dpf(CARD_RADIUS), dpf(1.2f));
+                glassSpec, glassShade, dpf(Tokens.RADIUS_CARD), dpf(Tokens.RIM));
+    }
+
+    /**
+     * A pane that meets the bottom edge of the screen: the same material, but
+     * only the top corners are rounded. A sheet with all four corners rounded
+     * would show the page through the two bottom ones.
+     */
+    public android.graphics.drawable.Drawable sheetFill() {
+        return new GlassDrawable(glassTop, glassBottom, strokeTop, strokeBottom,
+                glassSpec, glassShade,
+                dpf(Tokens.RADIUS_CARD), 0f, dpf(Tokens.RIM));
+    }
+
+    /**
+     * Fade painted behind the pinned action, so content scrolling under it
+     * dissolves instead of being hard-clipped at a line. Built from the
+     * backdrop's own bottom colour, so it matches the aurora rather than
+     * sitting on it as a grey band.
+     */
+    public android.graphics.drawable.Drawable scrimBottom() {
+        return new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{withAlpha(bgBottom, 0x00), withAlpha(bgBottom, 0xB4),
+                        withAlpha(bgBottom, 0xF2)});
+    }
+
+    private static int withAlpha(int color, int alpha) {
+        return (alpha << 24) | (color & 0x00FFFFFF);
     }
 
     public android.graphics.drawable.Drawable pillFill() {
-        return new GlassDrawable(
-                dark ? 0x24FFFFFF : 0x94FFFFFF,
-                dark ? 0x14FFFFFF : 0x54FFFFFF,
-                dark ? 0x4DFFFFFF : 0xDFFFFFFF,
-                dark ? 0x14FFFFFF : 0x66FFFFFF,
-                dpf(999), dpf(1.2f));
+        return new GlassDrawable(p.pillTop, p.pillBottom,
+                // A solid hairline: a short pill has no vertical room for a
+                // rim gradient, so a white-to-transparent rim would vanish.
+                p.pillRim, p.pillRim, p.pillSpec, p.pillShade,
+                dpf(Tokens.RADIUS_PILL), dpf(Tokens.RIM));
     }
 
     /** A standalone glass card. */
     public LinearLayout card() {
-        LinearLayout l = new LinearLayout(ctx);
-        l.setOrientation(LinearLayout.VERTICAL);
-        l.setBackground(panel());
-        l.setPadding(dp(20), dp(18), dp(20), dp(18));
-        l.setElevation(dpf(dark ? 10 : 6));
-        l.setOutlineProvider(outline(dpf(CARD_RADIUS)));
-        l.setClipToOutline(false);
-        return l;
+        return GlassCard.card(ctx, this);
     }
 
     /** A glass container for a grouped list of rows. */
     public LinearLayout list() {
-        LinearLayout l = new LinearLayout(ctx);
-        l.setOrientation(LinearLayout.VERTICAL);
-        l.setBackground(panel());
-        l.setPadding(0, dp(6), 0, dp(6));
-        l.setElevation(dpf(dark ? 10 : 6));
-        l.setOutlineProvider(outline(dpf(CARD_RADIUS)));
-        l.setClipToOutline(false);
-        return l;
+        return GlassCard.list(ctx, this);
     }
 
     public LinearLayout row() {
-        LinearLayout r = new LinearLayout(ctx);
-        r.setOrientation(LinearLayout.HORIZONTAL);
-        r.setGravity(Gravity.CENTER_VERTICAL);
-        r.setPadding(dp(18), dp(14), dp(18), dp(14));
-        return r;
+        return GlassRow.of(ctx, this);
     }
 
     public View divider() {
@@ -255,7 +233,7 @@ public final class Ui {
         v.setBackgroundColor(dividerColor);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, dp(1)));
-        lp.leftMargin = dp(18);
+        lp.leftMargin = dp(Tokens.SPACE_7);
         v.setLayoutParams(lp);
         return v;
     }
@@ -269,9 +247,15 @@ public final class Ui {
     /** Makes a row behave like a tappable cell without changing its look. */
     public void clickable(View row) {
         row.setClickable(true);
-        row.setFocusable(true);
+        // Not focusable on purpose: the ripple's focus layer has no mask, so a
+        // focused row paints a hard-edged rectangle that stays on screen after
+        // the keyboard closes.
+        row.setFocusable(false);
+        // A mask keeps the pressed ripple inside the cell's shape; an unmasked
+        // (unbounded) ripple grows into a circle that spills over the card.
         row.setBackground(new RippleDrawable(
-                ColorStateList.valueOf(dark ? 0x22FFFFFF : 0x14000000), null, null));
+                ColorStateList.valueOf(rippleRow), null,
+                rounded(Color.WHITE, Tokens.RADIUS_ROW)));
     }
 
     public View dot(int color) {
@@ -286,60 +270,38 @@ public final class Ui {
     // ── controls ──────────────────────────────────────────────────────
 
     public TextView primaryButton(String label) {
-        TextView b = text(label, 17, Color.WHITE, true);
-        b.setGravity(Gravity.CENTER);
-        b.setIncludeFontPadding(false);
-        b.setPadding(dp(22), dp(17), dp(22), dp(17));
-        setPrimary(b, false);
-        return b;
+        return GlassButtons.primary(ctx, this, label);
     }
 
     /** Repaints a primary button; {@code destructive} turns it into the stop state. */
     public void setPrimary(TextView b, boolean destructive) {
-        GlassDrawable fill = new GlassDrawable(
-                destructive ? stopFillTop : accentFillTop,
-                destructive ? stopFillBottom : accentFillBottom,
-                0x73FFFFFF, 0x1FFFFFFF, dpf(999), dpf(1.4f));
-        b.setBackground(new RippleDrawable(ColorStateList.valueOf(0x40FFFFFF), fill, null));
-        b.setElevation(dpf(12));
-        b.setOutlineProvider(outline(dpf(999)));
-        b.setClipToOutline(false);
+        GlassButtons.paintPrimary(this, b, destructive);
     }
 
     public TextView secondaryButton(String label) {
-        TextView b = text(label, 16, textColor, false);
-        b.setGravity(Gravity.CENTER);
-        b.setIncludeFontPadding(false);
-        b.setPadding(dp(20), dp(14), dp(20), dp(14));
-        setSecondary(b);
-        return b;
+        return GlassButtons.secondary(ctx, this, label);
     }
 
     public void setSecondary(TextView b) {
-        b.setBackground(new RippleDrawable(ColorStateList.valueOf(0x26FFFFFF), pillFill(), null));
-        b.setElevation(dpf(4));
+        GlassButtons.paintSecondary(this, b);
     }
 
     /** Circular glass glyph button (back arrows, plus/minus). */
     public TextView iconButton(String glyph) {
-        TextView b = text(glyph, 18, textColor, true);
-        b.setGravity(Gravity.CENTER);
-        b.setIncludeFontPadding(false);
-        b.setBackground(new RippleDrawable(ColorStateList.valueOf(0x26FFFFFF), pillFill(), null));
-        b.setElevation(dpf(4));
-        return b;
+        return GlassButtons.icon(ctx, this, glyph);
     }
 
     public EditText field() {
         EditText e = new EditText(ctx);
-        e.setTextSize(16);
+        e.setTextSize(Tokens.TYPE_ROW);
         e.setTextColor(textColor);
         e.setHintTextColor(faint);
         e.setSingleLine(true);
-        e.setPadding(dp(16), dp(13), dp(16), dp(13));
+        e.setPadding(dp(Tokens.SPACE_6), dp(Tokens.SPACE_FIELD_PAD),
+                dp(Tokens.SPACE_6), dp(Tokens.SPACE_FIELD_PAD));
         GradientDrawable g = new GradientDrawable();
         g.setColor(fieldFill);
-        g.setCornerRadius(dpf(FIELD_RADIUS));
+        g.setCornerRadius(dpf(Tokens.RADIUS_FIELD));
         g.setStroke(Math.max(1, dp(1)), strokeBottom);
         e.setBackground(g);
         return e;
@@ -352,13 +314,13 @@ public final class Ui {
     public View switchRow(String title, String subtitle, boolean on) {
         LinearLayout labels = new LinearLayout(ctx);
         labels.setOrientation(LinearLayout.VERTICAL);
-        labels.addView(text(title, 16, textColor, false));
+        labels.addView(text(title, Tokens.TYPE_ROW, textColor, false));
         if (subtitle != null) {
-            TextView s = text(subtitle, 12, faint, false);
+            TextView s = text(subtitle, Tokens.TYPE_CAPTION, dim, false);
             s.setLineSpacing(dpf(2), 1f);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            lp.topMargin = dp(4);
+            lp.topMargin = dp(Tokens.SPACE_1);
             s.setLayoutParams(lp);
             labels.addView(s);
         }
@@ -368,15 +330,31 @@ public final class Ui {
                 dark ? 0x2EFFFFFF : 0x26000000,
                 dark ? 0x59FFFFFF : 0x40FFFFFF);
         toggle.setChecked(on);
+        // The row owns the tap: a clickable toggle would swallow the touch and
+        // flip its own state without ever reaching the row's persistence code.
+        toggle.setClickable(false);
+        toggle.setFocusable(false);
 
         LinearLayout row = row();
         LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        tlp.leftMargin = dp(14);
+        tlp.leftMargin = dp(Tokens.SPACE_5);
         row.addView(labels, new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         row.addView(toggle, tlp);
         clickable(row);
+        // The row is the tap target, but the toggle is what carries the state.
+        // Without this, TalkBack reads a plain button and never announces
+        // whether the switch is on -- the one thing a switch has to say.
+        row.setContentDescription(subtitle == null ? title : title + ". " + subtitle);
+        row.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+            @Override public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                info.setClassName("android.widget.Switch");
+                info.setCheckable(true);
+                info.setChecked(toggle.isChecked());
+            }
+        });
         return row;
     }
 
@@ -392,7 +370,7 @@ public final class Ui {
     public View tapRow(String title, String value) {
         LinearLayout labels = new LinearLayout(ctx);
         labels.setOrientation(LinearLayout.VERTICAL);
-        labels.addView(text(title, 16, textColor, false));
+        labels.addView(text(title, Tokens.TYPE_ROW, textColor, false));
 
         LinearLayout row = row();
         row.addView(labels, new LinearLayout.LayoutParams(
@@ -423,6 +401,17 @@ public final class Ui {
      */
     public void applyWindow(Activity a) {
         Window w = a.getWindow();
+        // PhoneWindow.getInsetsController() reads mDecor, which is only built by
+        // installDecor() -- and that happens on the first getDecorView() or
+        // setContentView(). Callers configure the window before their content
+        // exists, so the decor has to be materialised here or the controller
+        // call below throws NullPointerException.
+        w.getDecorView();
+        // The window background is painted before the first frame of the
+        // aurora, and the resource-based theme only follows the *system* mode.
+        // Painting it from the resolved palette keeps a forced light/dark choice
+        // from flashing the other colour on launch.
+        w.setBackgroundDrawable(new ColorDrawable(bgTop));
         w.setStatusBarColor(Color.TRANSPARENT);
         w.setNavigationBarColor(Color.TRANSPARENT);
         if (Build.VERSION.SDK_INT >= 29) {

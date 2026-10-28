@@ -1,6 +1,7 @@
 package com.aircast.app;
 
 import android.app.Application;
+import android.content.Context;
 
 /**
  * Holds the app-level context so background code (the log buffer, the native
@@ -15,6 +16,11 @@ public class App extends Application {
     public static final String APP_NAME = "AirCast";
 
     private static volatile App instance;
+
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(LocaleHelper.wrap(base));
+    }
 
     @Override
     public void onCreate() {

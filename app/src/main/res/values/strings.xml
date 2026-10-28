@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AirCast</string>
+    <string name="tagline">Send this phone\'s sound to AirPlay speakers</string>
+
+    <!-- main screen -->
+    <string name="status_ready">Ready to cast</string>
+    <string name="status_stopped">Stopped</string>
+    <string name="status_casting">Casting</string>
+    <string name="status_stopping">Stopping…</string>
+    <string name="status_cast_failed">The cast could not start</string>
+    <string name="status_no_speakers">No speakers found — check that this phone and the speaker are on the same Wi-Fi</string>
+    <string name="status_searching">Searching for AirPlay speakers…</string>
+    <string name="status_discovery_error">Discovery error: %1$s</string>
+    <string name="status_selected">Selected %1$s (%2$s)</string>
+    <string name="status_found_one">Found a speaker — tap it</string>
+    <string name="status_found_many">Found %1$d speakers — tap one</string>
+    <string name="status_casting_to">Casting to %1$s</string>
+    <string name="status_connecting">Connecting to %1$s…</string>
+    <string name="status_volume">Volume: %1$d</string>
+    <string name="status_phone_muted">Phone muted</string>
+    <string name="status_phone_unmuted">Phone unmuted</string>
+    <string name="status_volume_refused">The phone\'s volume could not be changed</string>
+    <string name="status_capture_denied">Capture consent denied</string>
+    <string name="no_speaker">No speaker selected</string>
+    <string name="no_speaker_note">Tap to scan or enter an address</string>
+    <string name="choose_speaker">Choose a speaker</string>
+    <string name="scan_again">Scan again</string>
+    <string name="manual_address">Address</string>
+    <string name="use_address">Use this address</string>
+    <string name="diag_line">capture %1$d Hz · peak %2$d · err %3$d · %4$ds sent</string>
+    <string name="section_speaker">Speaker</string>
+    <string name="hint_host">192.168.1.8:7000 or 192.168.1.8</string>
+    <string name="scan_for_speakers">Scan for speakers</string>
+    <string name="start_casting">Start casting</string>
+    <string name="connecting">Connecting…</string>
+    <string name="stopping">Stopping…</string>
+    <string name="stop_casting">Stop casting</string>
+    <string name="mute_phone">Mute phone</string>
+    <string name="mute_phone_note">Silences this phone so the sound comes only from the speaker.</string>
+    <string name="unmute_phone">Unmute phone</string>
+    <string name="heading_speaker_volume">Speaker volume</string>
+    <string name="volume_note">Adjusts the speaker, not the phone. The volume-key step is in Settings.</string>
+    <string name="percent">%1$d%%</string>
+    <string name="settings">Settings</string>
+
+    <!-- disclosure dialog -->
+    <string name="disclosure_title">Before we start</string>
+    <string name="disclosure_body">%1$s captures the audio playing on this phone and streams it only to the speaker you pick, over your local Wi-Fi network.\n\nNothing is recorded, stored, or uploaded anywhere.</string>
+    <string name="dont_show_again">Don\'t show again</string>
+    <string name="cancel">Cancel</string>
+    <string name="continue_label">Continue</string>
+    <string name="back">Back</string>
+
+    <!-- settings screen -->
+    <string name="section_appearance">Appearance</string>
+    <string name="language">Language</string>
+    <string name="language_system">Follow system</string>
+    <string name="language_en">English</string>
+    <string name="language_zh">中文</string>
+    <string name="theme">Theme</string>
+    <string name="theme_system">Follow system</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="section_airplay_audio">AirPlay audio</string>
+    <string name="audio_latency">Audio latency</string>
+    <string name="latency_value">%1$.2f s</string>
+    <string name="latency_note">How much audio the speaker buffers before it plays. Lower = more responsive, but below roughly 0.5 s a slow Wi-Fi link may stutter. The wire\'s own floor is 0.25 s, so that is as low as the slider goes. Applies to the next cast.</string>
+    <string name="section_volume">Volume</string>
+    <string name="volume_key_step">Volume key step</string>
+    <string name="volume_step_value">%1$d %%</string>
+    <string name="volume_step_note">How far one volume-key press, notification-slider tick or on-screen tap moves the speaker\'s volume.</string>
+    <string name="section_diagnostics">Diagnostics</string>
+    <string name="keep_a_log">Keep a log</string>
+    <string name="keep_a_log_note">Capture the AirPlay handshake and audio stats in a rotating in-memory buffer so a dropout can be exported afterwards.</string>
+    <string name="log_level">Log level</string>
+    <string name="log_level_error">Errors only</string>
+    <string name="log_level_warn">Warnings</string>
+    <string name="log_level_info">Info</string>
+    <string name="log_level_debug">Debug (chatty)</string>
+    <string name="view_log">View log</string>
+    <string name="export_log">Export log</string>
+    <string name="share">share</string>
+    <string name="log_empty">(empty — turn on \"Keep a log\" and cast for a while)</string>
+    <string name="log_title">%1$s log · %2$d lines</string>
+    <string name="clear">Clear</string>
+    <string name="close">Close</string>
+    <string name="nothing_logged">Nothing logged yet</string>
+    <string name="nothing_logged_body">Turn on \"Keep a log\" above, cast for a while, then come back here.</string>
+    <string name="export_log_chooser">Export %1$s log</string>
+    <string name="section_about">About</string>
+    <string name="about_row">About &amp; open-source licences</string>
+    <string name="about_body">Streams audio from this phone to AirPlay 2 speakers.\n\nDesigned and built by Brian: the interface and the app code are original work, while the copyright notices of every bundled component are preserved in the NOTICE and LICENSE files.\n\nIncludes open-source code licensed under Apache-2.0.\n\nNot affiliated with, or endorsed by, Apple Inc. \"AirPlay\" and \"HomePod\" are trademarks of Apple Inc., used only to describe compatibility.\n\nOpen-source components:\n• airplay2-sender-cpp — Apache-2.0\n• mbedTLS — Apache-2.0\n• ed25519 (orlp) — zlib\n\nAudio is processed entirely on-device; nothing is collected.</string>
+
+    <!-- notification -->
+    <string name="notification_channel">Casting</string>
+</resources>

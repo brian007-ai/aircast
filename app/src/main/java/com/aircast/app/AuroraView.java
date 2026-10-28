@@ -12,6 +12,7 @@ import android.graphics.RadialGradient;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
+import android.os.SystemClock;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
 
@@ -23,10 +24,15 @@ import android.view.animation.LinearInterpolator;
  *
  * The blooms are pre-rendered into a single soft sprite and drawn tinted, so the
  * animation costs one scaled bitmap blit per blob instead of rebuilding three
- * radial shaders every frame.
+ * radial shaders every frame. Three more things keep it off the power budget:
+ * the sprite is half resolution (the blooms are soft, so nothing is lost), the
+ * redraw is capped at 30 fps (a 260 s loop does not need 120), and the animator
+ * is paused whenever the window is not visible.
  */
 public final class AuroraView extends View {
     private static final long LOOP_MS = 26000;
+    /** ~30 fps: below this the motion reads as a stutter, above it nothing is gained. */
+    private static final long FRAME_MS = 33;
 
     private final Ui ui;
     private final Paint basePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -39,7 +45,9 @@ public final class AuroraView extends View {
     private PorterDuffColorFilter tintB;
     private PorterDuffColorFilter tintC;
     private float phase;
+    private long lastFrameAt;
     private ValueAnimator animator;
+    private boolean visible = true;
 
     public AuroraView(Context ctx, Ui ui) {
         super(ctx);
@@ -48,7 +56,9 @@ public final class AuroraView extends View {
     }
 
     private Bitmap buildSprite() {
-        int size = 256;
+        // Half resolution: each bloom is stretched to more than the screen
+        // width, so 128 px of a soft radial covers it with nothing visible lost.
+        int size = 128;
         Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(bmp);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -64,11 +74,6 @@ public final class AuroraView extends View {
         if (tintA == null) tintA = new PorterDuffColorFilter(ui.blobA, PorterDuff.Mode.SRC_IN);
         if (tintB == null) tintB = new PorterDuffColorFilter(ui.blobB, PorterDuff.Mode.SRC_IN);
         if (tintC == null) tintC = new PorterDuffColorFilter(ui.blobC, PorterDuff.Mode.SRC_IN);
-        if (basePaint.getShader() == null && getWidth() > 0 && getHeight() > 0) {
-            basePaint.setShader(new LinearGradient(0, 0, 0, getHeight(),
-                    new int[]{ui.bgTop, ui.bgMid, ui.bgBottom},
-                    new float[]{0f, 0.55f, 1f}, Shader.TileMode.CLAMP));
-        }
     }
 
     @Override
@@ -107,18 +112,43 @@ public final class AuroraView extends View {
     }
 
     @Override
+    public void onVisibilityAggregated(boolean isVisible) {
+        super.onVisibilityAggregated(isVisible);
+        visible = isVisible;
+        setAnimating(isVisible);
+    }
+
+    /** Pause/resume rather than rebuild: the loop position is the animation. */
+    private void setAnimating(boolean run) {
+        if (animator == null) {
+            animator = ValueAnimator.ofFloat(0f, 1f);
+            animator.setDuration(LOOP_MS);
+            animator.setRepeatCount(ValueAnimator.INFINITE);
+            animator.setInterpolator(new LinearInterpolator());
+            animator.addUpdateListener(a -> {
+                if (!visible) return;
+                // Throttle here, not in onDraw: invalidate() schedules a frame
+                // that may be redrawn at the display's full rate.
+                long now = SystemClock.uptimeMillis();
+                if (now - lastFrameAt < FRAME_MS) return;
+                lastFrameAt = now;
+                phase = (float) a.getAnimatedValue();
+                invalidate();
+            });
+        }
+        if (run) {
+            if (animator.isPaused()) animator.resume();
+            else if (!animator.isRunning()) animator.start();
+        } else if (animator.isRunning()) {
+            animator.pause();
+        }
+    }
+
+    @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        if (animator != null && animator.isRunning()) return;
-        animator = ValueAnimator.ofFloat(0f, 1f);
-        animator.setDuration(LOOP_MS);
-        animator.setRepeatCount(ValueAnimator.INFINITE);
-        animator.setInterpolator(new LinearInterpolator());
-        animator.addUpdateListener(a -> {
-            phase = (float) a.getAnimatedValue();
-            invalidate();
-        });
-        animator.start();
+        visible = getWindowVisibility() == View.VISIBLE && isShown();
+        setAnimating(visible);
     }
 
     @Override

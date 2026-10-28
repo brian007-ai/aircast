@@ -469,26 +469,26 @@ public class CastService extends Service {
     }
 
     /**
-     * Mutes or unmutes the phone from the on-screen button.
+     * Mutes or unmutes the phone from the on-screen switch.
      *
      * Works with no cast running, too: after a stop the service instance is
-     * gone, and the button used to be a silent no-op exactly when a left-over
-     * mute most needs clearing. The write here rides on the button's touch,
+     * gone, and the switch used to be a silent no-op exactly when a left-over
+     * mute most needs clearing. The write here rides on the switch's touch,
      * which is the one this device is most willing to take.
+     *
+     * @return the state ACTUALLY in effect, so the caller can put the switch
+     *         back if the ROM refused the change.
      */
-    public static boolean togglePhoneMute() {
-        AudioManager am = audioManager();
+    public static boolean setPhoneMuteFromUi(Context ctx, boolean mute) {
+        AudioManager am = ctx == null ? audioManager()
+                : (AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
         if (am == null) return phoneMuted;
-        // Toggle on the state actually in effect, not on what was asked for: an
-        // automatic mute the ROM refused leaves the phone audible, and tapping
-        // the button then has to mute it, not "unmute" a mute that never took.
-        boolean want = !phoneMuted;
         int gen = ++muteGen;
-        boolean now = setPhoneMute(am, want);
+        boolean now = setPhoneMute(am, mute);
         CastService svc = instance;
-        // Keep retrying from the live service when there is one; from the button
+        // Keep retrying from the live service when there is one; from the switch
         // the write already carries a touch, so a single attempt is enough.
-        if (want && !now && svc != null) svc.muteAttempt(gen, 0);
+        if (mute && !now && svc != null) svc.muteAttempt(gen, 0);
         return now;
     }
 
@@ -621,6 +621,7 @@ public class CastService extends Service {
         Intent data = intent.getParcelableExtra("data");
         String host = intent.getStringExtra("host");
         if (host == null || host.isEmpty() || data == null) {
+            CastState.fail(getString(R.string.status_cast_failed));
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -670,13 +671,15 @@ public class CastService extends Service {
         // slider in the shade and on the lock screen -- that is the "pull down
         // to control the speaker volume" path (task 4).
         NotificationChannel ch = new NotificationChannel(
-                "cast", "Casting", NotificationManager.IMPORTANCE_LOW);
+                "cast", getString(R.string.notification_channel),
+                NotificationManager.IMPORTANCE_LOW);
         ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(ch);
         startForeground(1, buildNotification());
 
         MediaProjection mp = ((MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE))
                 .getMediaProjection(resultCode, data);
         if (mp == null) {
+            CastState.fail(getString(R.string.status_cast_failed));
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -695,6 +698,7 @@ public class CastService extends Service {
             record = buildRecord(cfg, rate);
         }
         if (record == null) {
+            CastState.fail(getString(R.string.status_cast_failed));
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -707,10 +711,14 @@ public class CastService extends Service {
         if (rc != 0) {
             record.release();
             record = null;
+            CastState.fail(getString(R.string.status_cast_failed));
             stopSelf();
             return START_NOT_STICKY;
         }
         instance = this;
+        // From here the capture is live, which is what the screen draws its
+        // "stop" affordance and the capture line from.
+        CastState.casting(host);
         nativeSetVolume(remoteVolume);
         CastLog.i("cast", "started to " + host + " rate=" + rate
                 + " latency=" + String.format("%.2fs", (double) Settings.getLatencyMs(this) / 1000.0));
@@ -809,6 +817,10 @@ public class CastService extends Service {
         // (the undo has its own handler and keeps running).
         muteGen++;
         muteHandler.removeCallbacksAndMessages(null);
+        // Ending the session is the last thing this service reports. A phase set
+        // just before stopSelf() (the failure paths) is left alone, so the reason
+        // survives its own teardown.
+        CastState.clearIfActive();
         super.onDestroy();
     }
 

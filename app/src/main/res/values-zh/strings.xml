@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AirCast</string>
+    <string name="tagline">将这台手机的声音发送到 AirPlay 扬声器</string>
+
+    <!-- 主界面 -->
+    <string name="status_ready">准备就绪</string>
+    <string name="status_stopped">已停止</string>
+    <string name="status_casting">正在投送</string>
+    <string name="status_stopping">正在停止…</string>
+    <string name="status_cast_failed">无法开始投送</string>
+    <string name="status_no_speakers">未找到扬声器——请确认本机与扬声器在同一 Wi-Fi 网络</string>
+    <string name="status_searching">正在搜索 AirPlay 扬声器…</string>
+    <string name="status_discovery_error">搜索出错：%1$s</string>
+    <string name="status_selected">已选择 %1$s（%2$s）</string>
+    <string name="status_found_one">找到一台扬声器，点击选择</string>
+    <string name="status_found_many">找到 %1$d 台扬声器，点击选择</string>
+    <string name="status_casting_to">正在投送到 %1$s</string>
+    <string name="status_connecting">正在连接 %1$s…</string>
+    <string name="status_volume">音量：%1$d</string>
+    <string name="status_phone_muted">手机已静音</string>
+    <string name="status_phone_unmuted">手机已取消静音</string>
+    <string name="status_volume_refused">无法修改手机音量</string>
+    <string name="status_capture_denied">已拒绝录制授权</string>
+    <string name="no_speaker">未选择扬声器</string>
+    <string name="no_speaker_note">点击搜索或输入地址</string>
+    <string name="choose_speaker">选择扬声器</string>
+    <string name="scan_again">重新搜索</string>
+    <string name="manual_address">地址</string>
+    <string name="use_address">使用此地址</string>
+    <string name="diag_line">采集 %1$d Hz · 峰值 %2$d · 错误 %3$d · 已发送 %4$d 秒</string>
+    <string name="section_speaker">扬声器</string>
+    <string name="hint_host">192.168.1.8:7000 或 192.168.1.8</string>
+    <string name="scan_for_speakers">搜索扬声器</string>
+    <string name="start_casting">开始投送</string>
+    <string name="connecting">正在连接…</string>
+    <string name="stopping">正在停止…</string>
+    <string name="stop_casting">停止投送</string>
+    <string name="mute_phone">手机静音</string>
+    <string name="mute_phone_note">让本机静音，声音只从扬声器播放。</string>
+    <string name="unmute_phone">取消手机静音</string>
+    <string name="heading_speaker_volume">扬声器音量</string>
+    <string name="volume_note">调节的是扬声器音量，不是手机音量。音量键步长在“设置”中。</string>
+    <string name="percent">%1$d%%</string>
+    <string name="settings">设置</string>
+
+    <!-- 开始前的说明 -->
+    <string name="disclosure_title">开始前</string>
+    <string name="disclosure_body">%1$s 会采集本机正在播放的声音，只通过本地 Wi-Fi 发送到你选择的扬声器。\n\n不会录制、保存或上传到任何地方。</string>
+    <string name="dont_show_again">不再提示</string>
+    <string name="cancel">取消</string>
+    <string name="continue_label">继续</string>
+    <string name="back">返回</string>
+
+    <!-- 设置界面 -->
+    <string name="section_appearance">外观</string>
+    <string name="language">语言</string>
+    <string name="language_system">跟随系统</string>
+    <string name="language_en">English</string>
+    <string name="language_zh">中文</string>
+    <string name="theme">主题</string>
+    <string name="theme_system">跟随系统</string>
+    <string name="theme_light">浅色</string>
+    <string name="theme_dark">深色</string>
+    <string name="section_airplay_audio">AirPlay 音频</string>
+    <string name="audio_latency">音频延迟</string>
+    <string name="latency_value">%1$.2f 秒</string>
+    <string name="latency_note">扬声器在播放前缓冲的音频时长。数值越低响应越快，但低于约 0.5 秒时，Wi-Fi 较慢可能会卡顿。链路本身的下限是 0.25 秒，因此滑块最低只能到这里。下次投送时生效。</string>
+    <string name="section_volume">音量</string>
+    <string name="volume_key_step">音量键步长</string>
+    <string name="volume_step_value">%1$d %%</string>
+    <string name="volume_step_note">按一次音量键、在通知栏滑动一次或点击一次屏幕按钮时，扬声器音量变化的幅度。</string>
+    <string name="section_diagnostics">诊断</string>
+    <string name="keep_a_log">保留日志</string>
+    <string name="keep_a_log_note">在内存中循环保存 AirPlay 握手与音频统计，方便出现断音后导出排查。</string>
+    <string name="log_level">日志级别</string>
+    <string name="log_level_error">仅错误</string>
+    <string name="log_level_warn">警告</string>
+    <string name="log_level_info">信息</string>
+    <string name="log_level_debug">调试（详细）</string>
+    <string name="view_log">查看日志</string>
+    <string name="export_log">导出日志</string>
+    <string name="share">分享</string>
+    <string name="log_empty">（暂无内容——请打开“保留日志”并投送一段时间）</string>
+    <string name="log_title">%1$s 日志 · %2$d 行</string>
+    <string name="clear">清空</string>
+    <string name="close">关闭</string>
+    <string name="nothing_logged">暂无日志</string>
+    <string name="nothing_logged_body">请先打开上方的“保留日志”，投送一段时间后再回到这里。</string>
+    <string name="export_log_chooser">导出 %1$s 日志</string>
+    <string name="section_about">关于</string>
+    <string name="about_row">关于与开源许可</string>
+    <string name="about_body">将这台手机的声音投送到 AirPlay 2 扬声器。\n\n由 Brian 设计与开发：界面与应用代码均为原创，各内置组件的版权声明保留在 NOTICE 与 LICENSE 文件中。\n\n包含以 Apache-2.0 许可发布的开源代码。\n\n与 Apple Inc. 无关联，也未获其背书。“AirPlay”与“HomePod”是 Apple Inc. 的商标，此处仅用于说明兼容性。\n\n开源组件：\n• airplay2-sender-cpp — Apache-2.0\n• mbedTLS — Apache-2.0\n• ed25519 (orlp) — zlib\n\n音频完全在本机处理，不会收集任何数据。</string>
+
+    <!-- 通知 -->
+    <string name="notification_channel">正在投送</string>
+</resources>

@@ -1,6 +1,7 @@
 package com.aircast.app;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.os.Bundle;
@@ -25,6 +26,11 @@ import android.widget.TextView;
 public class SettingsActivity extends Activity {
     private Ui ui;
     private LinearLayout diagnostics;
+
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(LocaleHelper.wrap(base));
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,18 +62,20 @@ public class SettingsActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         root.addView(header());
-        root.addView(ui.section("AirPlay audio"), ui.top(24));
+        root.addView(ui.section(getString(R.string.section_appearance)), ui.top(24));
+        root.addView(appearanceCard(), ui.top(10));
+        root.addView(ui.section(getString(R.string.section_airplay_audio)), ui.top(22));
         root.addView(latencyCard(), ui.top(10));
 
-        root.addView(ui.section("Volume"), ui.top(22));
+        root.addView(ui.section(getString(R.string.section_volume)), ui.top(22));
         root.addView(stepCard(), ui.top(10));
 
-        root.addView(ui.section("Diagnostics"), ui.top(22));
+        root.addView(ui.section(getString(R.string.section_diagnostics)), ui.top(22));
         diagnostics = ui.list();
         root.addView(diagnostics, ui.top(10));
         applyLogVisibility();
 
-        root.addView(ui.section("About"), ui.top(22));
+        root.addView(ui.section(getString(R.string.section_about)), ui.top(22));
         root.addView(aboutCard(), ui.top(10));
 
         setContentView(shell);
@@ -80,16 +88,86 @@ public class SettingsActivity extends Activity {
         bar.setGravity(Gravity.CENTER_VERTICAL);
 
         TextView back = ui.iconButton("\u2039");
-        back.setContentDescription("Back");
+        back.setContentDescription(getString(R.string.back));
         back.setOnClickListener(v -> finish());
         bar.addView(back, new LinearLayout.LayoutParams(ui.dp(38), ui.dp(38)));
 
-        TextView title = ui.title("Settings");
+        TextView title = ui.title(getString(R.string.settings));
         LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
         tlp.leftMargin = ui.dp(14);
         bar.addView(title, tlp);
         return bar;
+    }
+
+    // ── appearance ──────────────────────────────────────────────────
+
+    /**
+     * Language and theme are stored as plain strings so the palette and the
+     * resources are re-read on the next build; the screen rebuilds itself after
+     * a change, since both values are baked into the view tree.
+     */
+    private View appearanceCard() {
+        LinearLayout list = ui.list();
+
+        String lang = Settings.getLanguage(this);
+        View languageRow = ui.tapRow(getString(R.string.language),
+                getString(languageLabel(lang)));
+        languageRow.setOnClickListener(v -> {
+            final GlassDialog dialog = new GlassDialog(this, ui, getString(R.string.language));
+            LinearLayout options = new LinearLayout(this);
+            options.setOrientation(LinearLayout.VERTICAL);
+            String[] ids = {Settings.LANG_SYSTEM, Settings.LANG_EN, Settings.LANG_ZH};
+            int[] names = {R.string.language_system, R.string.language_en,
+                    R.string.language_zh};
+            for (int i = 0; i < ids.length; i++) {
+                final String id = ids[i];
+                View choice = optionRow(getString(names[i]), id.equals(lang), () -> {
+                    dialog.dismiss();
+                    Settings.setLanguage(SettingsActivity.this, id);
+                    recreate();
+                });
+                ui.addRow(options, choice);
+            }
+            dialog.setBody(options);
+            dialog.show();
+        });
+        ui.addRow(list, languageRow);
+
+        String theme = Settings.getThemeMode(this);
+        View themeRow = ui.tapRow(getString(R.string.theme), getString(themeLabel(theme)));
+        themeRow.setOnClickListener(v -> {
+            final GlassDialog dialog = new GlassDialog(this, ui, getString(R.string.theme));
+            LinearLayout options = new LinearLayout(this);
+            options.setOrientation(LinearLayout.VERTICAL);
+            String[] ids = {Settings.THEME_SYSTEM, Settings.THEME_LIGHT, Settings.THEME_DARK};
+            int[] names = {R.string.theme_system, R.string.theme_light, R.string.theme_dark};
+            for (int i = 0; i < ids.length; i++) {
+                final String id = ids[i];
+                View choice = optionRow(getString(names[i]), id.equals(theme), () -> {
+                    dialog.dismiss();
+                    Settings.setThemeMode(SettingsActivity.this, id);
+                    recreate();
+                });
+                ui.addRow(options, choice);
+            }
+            dialog.setBody(options);
+            dialog.show();
+        });
+        ui.addRow(list, themeRow);
+        return list;
+    }
+
+    private static int languageLabel(String lang) {
+        if (Settings.LANG_ZH.equals(lang)) return R.string.language_zh;
+        if (Settings.LANG_EN.equals(lang)) return R.string.language_en;
+        return R.string.language_system;
+    }
+
+    private static int themeLabel(String theme) {
+        if (Settings.THEME_DARK.equals(theme)) return R.string.theme_dark;
+        if (Settings.THEME_LIGHT.equals(theme)) return R.string.theme_light;
+        return R.string.theme_system;
     }
 
     // ── cards ───────────────────────────────────────────────────────
@@ -100,7 +178,7 @@ public class SettingsActivity extends Activity {
         LinearLayout head = new LinearLayout(this);
         head.setOrientation(LinearLayout.HORIZONTAL);
         head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(ui.heading("Audio latency"),
+        head.addView(ui.heading(getString(R.string.audio_latency)),
                 new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         TextView value = ui.value(formatLatency(Settings.getLatency(this)));
         head.addView(value);
@@ -122,17 +200,14 @@ public class SettingsActivity extends Activity {
         });
         card.addView(sb, ui.top(4));
 
-        TextView note = ui.caption("How much audio the speaker buffers before it plays. Lower = "
-                + "more responsive, but below roughly 0.5 s a slow Wi-Fi link may stutter. The "
-                + "wire's own floor is 0.25 s, so that is as low as the slider goes. Applies to the "
-                + "next cast.");
+        TextView note = ui.caption(getString(R.string.latency_note));
         note.setMaxLines(6);
         card.addView(note, ui.top(2));
         return card;
     }
 
-    private static String formatLatency(float sec) {
-        return String.format("%.2f s", sec);
+    private String formatLatency(float sec) {
+        return getString(R.string.latency_value, sec);
     }
 
     private View stepCard() {
@@ -141,9 +216,9 @@ public class SettingsActivity extends Activity {
         LinearLayout head = new LinearLayout(this);
         head.setOrientation(LinearLayout.HORIZONTAL);
         head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(ui.heading("Volume key step"),
+        head.addView(ui.heading(getString(R.string.volume_key_step)),
                 new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        TextView value = ui.value(Settings.getVolStep(this) + " %");
+        TextView value = ui.value(getString(R.string.volume_step_value, Settings.getVolStep(this)));
         head.addView(value);
         card.addView(head);
 
@@ -153,7 +228,7 @@ public class SettingsActivity extends Activity {
         sb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar s, int p, boolean fromUser) {
                 int step = p + Settings.VOL_STEP_MIN;
-                value.setText(step + " %");
+                value.setText(getString(R.string.volume_step_value, step));
                 Settings.setVolStep(SettingsActivity.this, step);
             }
             @Override public void onStartTrackingTouch(SeekBar s) {}
@@ -161,8 +236,7 @@ public class SettingsActivity extends Activity {
         });
         card.addView(sb, ui.top(4));
 
-        card.addView(ui.caption("How far one volume-key press, notification-slider tick or "
-                + "on-screen tap moves the speaker's volume."), ui.top(2));
+        card.addView(ui.caption(getString(R.string.volume_step_note)), ui.top(2));
         return card;
     }
 
@@ -183,9 +257,8 @@ public class SettingsActivity extends Activity {
     }
 
     private View logRow() {
-        View row = ui.switchRow("Keep a log",
-                "Capture the AirPlay handshake and audio stats in a rotating in-memory "
-                + "buffer so a dropout can be exported afterwards.",
+        View row = ui.switchRow(getString(R.string.keep_a_log),
+                getString(R.string.keep_a_log_note),
                 Settings.isLogEnabled(this));
         row.setOnClickListener(v -> {
             boolean now = !Settings.isLogEnabled(this);
@@ -200,11 +273,13 @@ public class SettingsActivity extends Activity {
 
     private View logLevelRow() {
         String[] ids = {"error", "warn", "info", "debug"};
-        String[] names = {"Errors only", "Warnings", "Info", "Debug (chatty)"};
+        String[] names = {getString(R.string.log_level_error), getString(R.string.log_level_warn),
+                getString(R.string.log_level_info), getString(R.string.log_level_debug)};
         int cur = Settings.getLogLevel(this);
-        View row = ui.tapRow("Log level", names[Math.min(cur, names.length - 1)]);
+        View row = ui.tapRow(getString(R.string.log_level),
+                names[Math.min(cur, names.length - 1)]);
         row.setOnClickListener(v -> {
-            final GlassDialog dialog = new GlassDialog(this, ui, "Log level");
+            final GlassDialog dialog = new GlassDialog(this, ui, getString(R.string.log_level));
             LinearLayout options = new LinearLayout(this);
             options.setOrientation(LinearLayout.VERTICAL);
             for (int i = 0; i < names.length; i++) {
@@ -235,12 +310,12 @@ public class SettingsActivity extends Activity {
     }
 
     private View viewLogRow() {
-        View row = ui.tapRow("View log", "");
+        View row = ui.tapRow(getString(R.string.view_log), "");
         row.setOnClickListener(v -> {
             java.util.List<String> lines = CastLog.snapshot();
             StringBuilder sb = new StringBuilder();
             if (lines.isEmpty()) {
-                sb.append("(empty -- turn on \"Keep a log\" and cast for a while)");
+                sb.append(getString(R.string.log_empty));
             } else {
                 for (String l : lines) sb.append(l).append('\n');
             }
@@ -253,27 +328,26 @@ public class SettingsActivity extends Activity {
             sv.addView(tv);
 
             GlassDialog dialog = new GlassDialog(this, ui,
-                    App.APP_NAME + " log \u00b7 " + lines.size() + " lines");
+                    getString(R.string.log_title, App.APP_NAME, lines.size()));
             dialog.setBody(sv, ui.dp(300));
-            dialog.addAction("Clear", false, () -> {
+            dialog.addAction(getString(R.string.clear), false, () -> {
                 CastLog.clear();
                 CastLog.mark("log cleared");
             });
-            dialog.addAction("Close", true, null);
+            dialog.addAction(getString(R.string.close), true, null);
             dialog.show();
         });
         return row;
     }
 
     private View exportLogRow() {
-        View row = ui.tapRow("Export log", "share");
+        View row = ui.tapRow(getString(R.string.export_log), getString(R.string.share));
         row.setOnClickListener(v -> {
             java.util.List<String> lines = CastLog.snapshot();
             if (lines.isEmpty()) {
-                GlassDialog dialog = new GlassDialog(this, ui, "Nothing logged yet");
-                dialog.setMessage("Turn on \"Keep a log\" above, cast for a while, "
-                        + "then come back here.");
-                dialog.addAction("OK", true, null);
+                GlassDialog dialog = new GlassDialog(this, ui, getString(R.string.nothing_logged));
+                dialog.setMessage(getString(R.string.nothing_logged_body));
+                dialog.addAction(getString(android.R.string.ok), true, null);
                 dialog.show();
                 return;
             }
@@ -284,7 +358,8 @@ public class SettingsActivity extends Activity {
             share.setType("text/plain");
             share.putExtra(Intent.EXTRA_SUBJECT, App.APP_NAME + " log");
             share.putExtra(Intent.EXTRA_TEXT, sb.toString());
-            startActivity(Intent.createChooser(share, "Export " + App.APP_NAME + " log"));
+            startActivity(Intent.createChooser(share,
+                    getString(R.string.export_log_chooser, App.APP_NAME)));
         });
         return row;
     }
@@ -293,7 +368,7 @@ public class SettingsActivity extends Activity {
 
     private View aboutCard() {
         LinearLayout list = ui.list();
-        View row = ui.tapRow("About & open-source licences", versionLabel());
+        View row = ui.tapRow(getString(R.string.about_row), versionLabel());
         row.setOnClickListener(v -> showAbout());
         ui.addRow(list, row);
         return list;
@@ -315,26 +390,13 @@ public class SettingsActivity extends Activity {
         }
 
         ScrollView sv = new ScrollView(this);
-        TextView body = ui.body("Streams audio from this phone to AirPlay 2 speakers.\n\n"
-                + "This build is a community fork of the AirCast project: the interface and "
-                + "the app code have been reworked, while the copyright notices of the "
-                + "original authors and of every bundled component are preserved in the "
-                + "NOTICE and LICENSE files.\n\n"
-                + "Includes open-source code licensed under Apache-2.0.\n\n"
-                + "Not affiliated with, or endorsed by, Apple Inc. \"AirPlay\" and "
-                + "\"HomePod\" are trademarks of Apple Inc., used only to describe "
-                + "compatibility.\n\n"
-                + "Open-source components:\n"
-                + "\u2022 airplay2-sender-cpp \u2014 Apache-2.0\n"
-                + "\u2022 mbedTLS \u2014 Apache-2.0\n"
-                + "\u2022 ed25519 (orlp) \u2014 zlib\n\n"
-                + "Audio is processed entirely on-device; nothing is collected.");
+        TextView body = ui.body(getString(R.string.about_body));
         body.setPadding(ui.dp(14), ui.dp(12), ui.dp(14), ui.dp(12));
         sv.addView(body);
 
         GlassDialog dialog = new GlassDialog(this, ui, App.APP_NAME + " " + version);
         dialog.setBody(sv, ui.dp(320));
-        dialog.addAction("Close", true, null);
+        dialog.addAction(getString(R.string.close), true, null);
         dialog.show();
     }
 }

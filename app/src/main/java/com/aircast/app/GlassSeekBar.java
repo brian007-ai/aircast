@@ -73,6 +73,14 @@ public final class GlassSeekBar extends SeekBar {
             rect.set(start, cy - radius, end, cy + radius);
             paint.setShader(fillShader);
             canvas.drawRoundRect(rect, radius, radius, paint);
+
+            // A light catch along the top of the filled part: it separates the
+            // accent segment from the recessed track even at low values, where
+            // the colour difference alone is easy to miss.
+            paint.setShader(null);
+            paint.setColor(ui.dark ? 0x33FFFFFF : 0x40FFFFFF);
+            rect.set(start, cy - radius, end, cy - radius * 0.35f);
+            canvas.drawRoundRect(rect, radius, radius, paint);
         }
 
         @Override
