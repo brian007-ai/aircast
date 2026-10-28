@@ -4,6 +4,9 @@ English | [简体中文](README.zh-CN.md)
 
 **Cast audio playing on your Android phone to AirPlay 2 speakers — HomePod, Sonos, Apple TV, and more.**
 
+> **Site**: https://brian007-ai.github.io/aircast/ · **Download 1.0.0**: [AirCast-1.0.0.apk](https://github.com/brian007-ai/aircast/releases/download/v1.0.0/AirCast-1.0.0.apk)
+
+
 Android phones speak Google Cast. AirPlay speakers speak AirPlay. The two don't
 meet natively, so until now the usual answer was "get an iPhone". AirCast is
 a small Android app that bridges the gap: it captures whatever is playing on
@@ -61,7 +64,7 @@ dependency download step — the AirPlay sender is vendored under
 `airplay2-sender-cpp/` and Mbed TLS is a pinned git submodule.
 
 ```bash
-git clone --recurse-submodules <repository-url>
+git clone --recurse-submodules https://github.com/brian007-ai/aircast.git
 cd aircast
 
 # point at your SDK

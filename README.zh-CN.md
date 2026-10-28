@@ -4,6 +4,9 @@
 
 **把手机上正在播放的声音投到 AirPlay 2 音箱 —— HomePod、Sonos、Apple TV 等。**
 
+> **项目网站**：https://brian007-ai.github.io/aircast/ · **下载 1.0.0**：[AirCast-1.0.0.apk](https://github.com/brian007-ai/aircast/releases/download/v1.0.0/AirCast-1.0.0.apk)
+
+
 安卓手机说 Google Cast，AirPlay 音箱只说 AirPlay，两者原生并不相通，所以过去的
 标准答案一直是"买个 iPhone"。AirCast 是个小安卓应用，专门补这个缺口：它抓取手机上
 正在播放的声音，直接从手机投到同一 Wi-Fi 下的 AirPlay 接收端。不需要中转盒子，
@@ -53,7 +56,7 @@
 放在 `airplay2-sender-cpp/`，Mbed TLS 是固定版本的 git 子模块。
 
 ```bash
-git clone --recurse-submodules <repository-url>
+git clone --recurse-submodules https://github.com/brian007-ai/aircast.git
 cd aircast
 
 # 指向你的 SDK
