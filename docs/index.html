@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1">
+<title>AirCast — 把 Android 的声音送到 AirPlay 音箱</title>
+<meta name="description" content="AirCast 是一个 Android 应用：把手机上正在播放的声音，直接投送到同一 Wi-Fi 下的 AirPlay 2 音箱。无中转盒子、无账号、无云端。Apache-2.0 开源。">
+<meta name="theme-color" content="#06080c">
+<meta property="og:title" content="AirCast — 把 Android 的声音送到 AirPlay 音箱">
+<meta property="og:description" content="手机上正在播放的声音，直接投送到 HomePod、Sonos、Apple TV。无需中转盒子，零云端。">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%238b6cff'/%3E%3Cstop offset='1' stop-color='%2335d0bf'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='15' fill='url(%23g)'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#06080c;
+    --ink:#f3f6fb;
+    --muted:rgba(243,246,251,.60);
+    --faint:rgba(243,246,251,.38);
+    --line:rgba(255,255,255,.10);
+    --line-strong:rgba(255,255,255,.16);
+    --glass:rgba(255,255,255,.055);
+    --glass-hi:rgba(255,255,255,.085);
+    --violet:#8b6cff;
+    --teal:#35d0bf;
+    --amber:#ffb457;
+    --rose:#ff6b8b;
+    --r-sm:12px;
+    --r-md:18px;
+    --r-lg:26px;
+    --r-xl:34px;
+    --shadow:0 24px 60px -24px rgba(0,0,0,.85);
+    --max:1080px;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Roboto,sans-serif;
+    font-size:16px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  a{color:inherit;text-decoration:none}
+  ::selection{background:rgba(139,108,255,.35)}
+
+  /* ---- aurora backdrop ---- */
+  .aurora{
+    position:fixed; inset:-20vmax;
+    z-index:-2; overflow:hidden;
+    filter:blur(0px); pointer-events:none;
+  }
+  .blob{
+    position:absolute; display:block;
+    width:52vmax; height:52vmax;
+    border-radius:50%;
+    filter:blur(70px);
+    opacity:.42;
+  }
+  .blob.a{ left:4%;  top:2%;  background:radial-gradient(circle at 40% 40%, var(--violet), transparent 68%); animation:drift-a 26s ease-in-out infinite alternate }
+  .blob.b{ right:2%; top:14%; background:radial-gradient(circle at 60% 40%, var(--teal), transparent 68%); opacity:.32; animation:drift-b 32s ease-in-out infinite alternate }
+  .blob.c{ left:26%; bottom:-6%; background:radial-gradient(circle at 50% 60%, var(--amber), transparent 70%); opacity:.22; animation:drift-c 38s ease-in-out infinite alternate }
+  .grain{
+    position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background-image:radial-gradient(rgba(255,255,255,.16) .5px, transparent .5px);
+    background-size:3px 3px;
+    opacity:.05;
+  }
+  @keyframes drift-a{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(6vmax,4vmax,0) scale(1.12)}}
+  @keyframes drift-b{from{transform:translate3d(0,0,0) scale(1.06)}to{transform:translate3d(-7vmax,6vmax,0) scale(.95)}}
+  @keyframes drift-c{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(4vmax,-5vmax,0) scale(1.15)}}
+
+  /* ---- nav ---- */
+  .nav{
+    position:sticky; top:0; z-index:20;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:16px;
+    padding:14px max(20px, env(safe-area-inset-left));
+    background:rgba(6,8,12,.55);
+    border-bottom:1px solid transparent;
+    backdrop-filter:saturate(160%) blur(20px);
+    -webkit-backdrop-filter:saturate(160%) blur(20px);
+    transition:border-color .3s ease, background .3s ease;
+  }
+  .nav.scrolled{border-bottom-color:var(--line); background:rgba(6,8,12,.82)}
+  .brand{display:flex; align-items:center; gap:10px; font-weight:650; letter-spacing:.2px}
+  .mark{
+    width:30px; height:30px; border-radius:9px;
+    background:linear-gradient(140deg,var(--violet),var(--teal));
+    box-shadow:0 6px 18px -6px rgba(139,108,255,.9), inset 0 1px 0 rgba(255,255,255,.5);
+    position:relative;
+  }
+  .mark::after{
+    content:""; position:absolute; inset:8px; border-radius:4px;
+    border:1.6px solid rgba(255,255,255,.92); border-bottom-color:transparent;
+  }
+  .nav-links{display:flex; align-items:center; gap:6px; font-size:14px}
+  .nav-links a{padding:8px 12px; border-radius:999px; color:var(--muted); transition:color .2s, background .2s}
+  .nav-links a:hover{color:var(--ink); background:var(--glass)}
+  @media (max-width:760px){ .nav-links a.opt{display:none} }
+
+  /* ---- layout ---- */
+  main{display:block}
+  .wrap{max-width:var(--max); margin:0 auto; padding:0 24px}
+  section{padding:84px 0; position:relative}
+  section + section{padding-top:12px}
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12.5px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--teal);
+    margin:0 0 14px;
+  }
+  .eyebrow::before{content:""; width:22px; height:1px; background:linear-gradient(90deg,var(--teal),transparent)}
+  h2{
+    font-size:clamp(26px,3.6vw,38px);
+    line-height:1.24; letter-spacing:-.02em;
+    margin:0 0 12px; font-weight:700;
+  }
+  .lede{color:var(--muted); max-width:62ch; margin:0 0 30px; font-size:16.5px}
+
+  /* ---- glass card ---- */
+  .card{
+    position:relative;
+    background:var(--glass);
+    border:1px solid var(--line);
+    border-radius:var(--r-lg);
+    padding:24px;
+    box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.14), inset 0 -18px 40px -28px rgba(0,0,0,.7);
+    backdrop-filter:saturate(150%) blur(22px);
+    -webkit-backdrop-filter:saturate(150%) blur(22px);
+    overflow:hidden;
+  }
+  .card::before{
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(180deg,rgba(255,255,255,.10),transparent 42%);
+    pointer-events:none;
+  }
+
+  /* ---- hero ---- */
+  .hero{padding:64px 0 40px}
+  .hero-grid{
+    display:grid; grid-template-columns:1.08fr .92fr;
+    gap:56px; align-items:center;
+  }
+  .badge{
+    display:inline-flex; flex-wrap:wrap; align-items:center; gap:8px;
+    padding:6px 12px 6px 6px;
+    border-radius:999px;
+    background:rgba(255,255,255,.06);
+    border:1px solid var(--line);
+    font-size:13px; color:var(--muted);
+    backdrop-filter:blur(12px);
+  }
+  .badge b{
+    padding:3px 9px; border-radius:999px;
+    background:linear-gradient(120deg,rgba(139,108,255,.9),rgba(53,208,191,.85));
+    color:#0b1020; font-size:12px; font-weight:700; letter-spacing:.02em;
+  }
+  h1{
+    font-size:clamp(36px,5.4vw,62px);
+    line-height:1.08; letter-spacing:-.035em;
+    margin:22px 0 18px; font-weight:760;
+  }
+  h1 .grad{
+    background:linear-gradient(100deg,#fff 6%,var(--violet) 46%,var(--teal) 92%);
+    -webkit-background-clip:text; background-clip:text;
+    -webkit-text-fill-color:transparent;
+  }
+  .hero p.sub{
+    color:var(--muted); font-size:17.5px; max-width:50ch; margin:0 0 28px;
+  }
+  .cta{display:flex; flex-wrap:wrap; gap:12px; align-items:center}
+  .btn{
+    display:inline-flex; align-items:center; gap:10px;
+    min-height:48px; padding:0 22px;
+    border-radius:999px; font-weight:640; font-size:15.5px;
+    border:1px solid transparent;
+    transition:transform .18s ease, box-shadow .25s ease, background .25s ease, border-color .25s;
+    will-change:transform;
+  }
+  .btn svg{width:18px; height:18px; flex:none}
+  .btn-primary{
+    background:linear-gradient(120deg,var(--violet),#6f8bff 55%,var(--teal));
+    color:#080c16;
+    box-shadow:0 18px 40px -18px rgba(139,108,255,.95), inset 0 1px 0 rgba(255,255,255,.55);
+  }
+  .btn-primary:hover{transform:translateY(-2px); box-shadow:0 24px 50px -18px rgba(139,108,255,1), inset 0 1px 0 rgba(255,255,255,.6)}
+  .btn-ghost{
+    background:var(--glass); border-color:var(--line-strong); color:var(--ink);
+    backdrop-filter:blur(14px);
+  }
+  .btn-ghost:hover{background:var(--glass-hi); transform:translateY(-2px)}
+  .btn:active{transform:translateY(0) scale(.985)}
+
+  .facts{
+    display:flex; flex-wrap:wrap; gap:8px 20px;
+    margin-top:26px; padding:0; list-style:none;
+    font-size:13.5px; color:var(--faint);
+  }
+  .facts li{display:flex; align-items:center; gap:7px}
+  .dot{width:5px; height:5px; border-radius:50%; background:var(--teal); box-shadow:0 0 10px var(--teal)}
+
+  /* ---- phone mock ---- */
+  .phone-stage{display:flex; justify-content:center; perspective:1400px}
+  .phone{
+    width:min(318px,78vw); aspect-ratio:9/19;
+    border-radius:46px;
+    padding:9px;
+    background:linear-gradient(160deg,rgba(255,255,255,.30),rgba(255,255,255,.06) 32%,rgba(255,255,255,.16));
+    box-shadow:0 50px 90px -40px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.10), inset 0 1px 0 rgba(255,255,255,.5);
+    transform:rotateY(-9deg) rotateX(4deg);
+    animation:float 9s ease-in-out infinite alternate;
+  }
+  @keyframes float{from{transform:rotateY(-9deg) rotateX(4deg) translateY(0)}to{transform:rotateY(-5deg) rotateX(2deg) translateY(-10px)}}
+  .screen{
+    position:relative; height:100%; border-radius:38px; overflow:hidden;
+    background:
+      radial-gradient(circle at 78% 12%, rgba(139,108,255,.55), transparent 52%),
+      radial-gradient(circle at 18% 78%, rgba(53,208,191,.42), transparent 55%),
+      radial-gradient(circle at 55% 42%, rgba(255,180,87,.16), transparent 60%),
+      #070a11;
+    padding:44px 16px 18px;
+    display:flex; flex-direction:column; gap:10px;
+    font-size:11.5px;
+  }
+  .notch{
+    position:absolute; top:12px; left:50%; transform:translateX(-50%);
+    width:96px; height:24px; border-radius:999px; background:#03050a;
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.05);
+  }
+  .s-title{font-size:19px; font-weight:700; letter-spacing:-.02em; padding:0 4px}
+  .s-sub{font-size:10.5px; color:rgba(243,246,251,.5); padding:0 4px; margin-top:-6px}
+  .pill{
+    align-self:flex-start;
+    display:inline-flex; align-items:center; gap:7px;
+    padding:6px 12px; border-radius:999px; font-size:10.5px;
+    color:rgba(243,246,251,.86);
+    background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.12);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.18);
+  }
+  .live{width:6px; height:6px; border-radius:50%; background:var(--teal); box-shadow:0 0 9px var(--teal); animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .s-card{
+    background:rgba(255,255,255,.055);
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:20px; padding:11px 12px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.16), inset 0 -14px 24px -18px rgba(0,0,0,.8);
+    backdrop-filter:blur(14px);
+  }
+  .s-row{display:flex; align-items:center; justify-content:space-between; gap:8px}
+  .s-row + .s-row{margin-top:9px; padding-top:9px; border-top:1px solid rgba(255,255,255,.075)}
+  .s-k{color:rgba(243,246,251,.88); font-weight:600}
+  .s-v{color:rgba(243,246,251,.42); font-size:10px}
+  .chev{width:5px; height:5px; border-right:1.4px solid rgba(243,246,251,.4); border-bottom:1.4px solid rgba(243,246,251,.4); transform:rotate(-45deg)}
+  .s-bar{height:5px; border-radius:99px; background:rgba(255,255,255,.1); margin-top:9px; overflow:hidden}
+  .s-bar i{display:block; height:100%; width:64%; border-radius:99px; background:linear-gradient(90deg,var(--teal),var(--violet))}
+  .spacer{flex:1}
+  .s-btn{
+    height:44px; border-radius:999px;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:12.5px; color:#080c16;
+    background:linear-gradient(120deg,var(--violet),var(--teal));
+    box-shadow:0 14px 26px -14px rgba(139,108,255,.9), inset 0 1px 0 rgba(255,255,255,.55);
+  }
+  .caption{margin:18px 0 0; text-align:center; font-size:12.5px; color:var(--faint)}
+
+  /* ---- grid of features ---- */
+  .grid{display:grid; gap:16px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .feat{padding:22px}
+  .ico{
+    width:42px; height:42px; border-radius:12px;
+    display:grid; place-items:center; margin-bottom:14px;
+    background:linear-gradient(150deg,rgba(139,108,255,.28),rgba(53,208,191,.16));
+    border:1px solid rgba(255,255,255,.14);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
+    color:#dbe4ff;
+  }
+  .ico svg{width:20px; height:20px}
+  .feat h3{margin:0 0 6px; font-size:16.5px; font-weight:660; letter-spacing:-.01em}
+  .feat p{margin:0; font-size:14px; color:var(--muted); line-height:1.6}
+
+  /* ---- flow ---- */
+  .flow{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:8px}
+  .step{padding:20px 18px; text-align:left}
+  .step .n{
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:11.5px; color:var(--teal); letter-spacing:.1em; margin-bottom:10px;
+  }
+  .step h3{margin:0 0 6px; font-size:15.5px; font-weight:650}
+  .step p{margin:0; font-size:13px; color:var(--muted)}
+
+  /* ---- download ---- */
+  .dl{display:grid; grid-template-columns:1.05fr .95fr; gap:20px; align-items:start}
+  .dl-main{padding:32px}
+  .dl-main h3{margin:0 0 8px; font-size:22px; letter-spacing:-.015em}
+  .dl-main p{margin:0 0 20px; color:var(--muted); font-size:14.5px}
+  .file{
+    display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px;
+    padding:14px 16px; border-radius:var(--r-md);
+    background:rgba(0,0,0,.28); border:1px solid var(--line);
+    font-size:13px; color:var(--muted); margin-top:20px;
+  }
+  .file b{color:var(--ink); font-weight:600}
+  code{
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:12px; color:rgba(243,246,251,.72);
+    word-break:break-all;
+  }
+  .side{padding:26px}
+  .side h3{margin:0 0 14px; font-size:15px; font-weight:660}
+  ol.steps{margin:0; padding:0; list-style:none; counter-reset:s; display:grid; gap:14px}
+  ol.steps li{
+    counter-increment:s; position:relative;
+    padding-left:34px; font-size:13.5px; color:var(--muted);
+  }
+  ol.steps li::before{
+    content:counter(s);
+    position:absolute; left:0; top:1px;
+    width:22px; height:22px; border-radius:50%;
+    display:grid; place-items:center;
+    font-size:11.5px; font-weight:700; color:var(--teal);
+    background:rgba(53,208,191,.12); border:1px solid rgba(53,208,191,.35);
+  }
+  ol.steps li b{color:var(--ink); font-weight:600}
+
+  /* ---- list ---- */
+  ul.plain{margin:0; padding:0; list-style:none; display:grid; gap:12px}
+  ul.plain li{
+    position:relative; padding-left:22px;
+    font-size:14px; color:var(--muted);
+  }
+  ul.plain li::before{
+    content:""; position:absolute; left:2px; top:.62em;
+    width:7px; height:7px; border-radius:2px;
+    background:linear-gradient(140deg,var(--violet),var(--teal));
+    opacity:.85;
+  }
+  ul.plain li b{color:var(--ink); font-weight:600}
+
+  /* ---- credits ---- */
+  .credits p{font-size:13.5px; color:var(--muted); margin:0 0 12px}
+  .credits p:last-child{margin-bottom:0}
+  .credits a{border-bottom:1px solid rgba(255,255,255,.25); transition:border-color .2s, color .2s}
+  .credits a:hover{color:var(--teal); border-color:var(--teal)}
+
+  /* ---- footer ---- */
+  footer{
+    border-top:1px solid var(--line);
+    padding:34px 0 46px;
+    font-size:13px; color:var(--faint);
+  }
+  .foot{display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px; align-items:center}
+  .foot-links{display:flex; flex-wrap:wrap; gap:18px}
+  .foot-links a:hover{color:var(--ink)}
+
+  /* ---- reveal ---- */
+  .reveal{opacity:0; transform:translateY(18px); transition:opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1; transform:none}
+
+  @media (prefers-reduced-motion:reduce){
+    .blob,.phone,.live{animation:none !important}
+    .reveal{opacity:1 !important; transform:none !important; transition:none !important}
+    html{scroll-behavior:auto}
+  }
+  html{scroll-behavior:smooth}
+
+  /* ---- responsive ---- */
+  @media (max-width:940px){
+    .hero-grid{grid-template-columns:1fr; gap:44px}
+    .phone-stage{order:-1}
+    .phone{transform:rotateY(-4deg); animation:none}
+    .g3{grid-template-columns:repeat(2,1fr)}
+    .flow{grid-template-columns:repeat(2,1fr)}
+    .dl{grid-template-columns:1fr}
+  }
+  @media (max-width:620px){
+    section{padding:64px 0}
+    .hero{padding:40px 0 24px}
+    .wrap{padding:0 18px}
+    .g3,.g2,.flow{grid-template-columns:1fr}
+    .card{padding:20px; border-radius:var(--r-md)}
+    .dl-main{padding:24px}
+    h1{font-size:clamp(32px,9vw,44px)}
+  }
+</style>
+</head>
+<body>
+<div class="aurora" aria-hidden="true">
+  <span class="blob a"></span>
+  <span class="blob b"></span>
+  <span class="blob c"></span>
+</div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <a class="brand" href="#top">
+    <span class="mark" aria-hidden="true"></span>
+    AirCast
+  </a>
+  <nav class="nav-links" aria-label="导航">
+    <a href="#features">功能</a>
+    <a href="#how" class="opt">原理</a>
+    <a href="#interface" class="opt">界面</a>
+    <a href="#download">下载</a>
+    <a href="https://github.com/brian007-ai/aircast" target="_blank" rel="noopener">GitHub ↗</a>
+  </nav>
+</header>
+
+<main id="top">
+  <!-- ============ hero ============ -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="badge"><b>v1.0.0</b> Android 10+ · Apache-2.0 · 本地网络</span>
+        <h1>把手机里的声音<br>送进 <span class="grad">AirPlay 音箱</span></h1>
+        <p class="sub">
+          Android 手机说 Google Cast，AirPlay 音箱只认 AirPlay。AirCast 直接在手机上把正在播放的声音
+          采集、编码、投送到同一 Wi-Fi 下的 HomePod、Sonos、Apple TV —— 没有中转盒子，没有主机。
+        </p>
+        <div class="cta">
+          <a class="btn btn-primary" href="https://github.com/brian007-ai/aircast/releases/download/v1.0.0/AirCast-1.0.0.apk">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+            下载 APK
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/brian007-ai/aircast" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.51 2.87 8.34 6.84 9.7.5.09.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.49-1.11-1.49-.91-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.9 1.57 2.36 1.12 2.93.85.09-.66.35-1.12.63-1.38-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.4 9.4 0 0 1 5 0c1.9-1.32 2.74-1.05 2.74-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9v2.82c0 .27.18.59.69.49A10.13 10.13 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z"/></svg>
+            查看源码
+          </a>
+        </div>
+        <ul class="facts">
+          <li><i class="dot"></i>没有账号</li>
+          <li><i class="dot"></i>没有云</li>
+          <li><i class="dot"></i>没有遥测</li>
+          <li><i class="dot"></i>数据不出局域网</li>
+        </ul>
+      </div>
+
+      <div class="phone-stage">
+        <div class="phone" role="img" aria-label="界面示意：投送中的主界面">
+          <div class="screen">
+            <div class="notch"></div>
+            <div class="s-title">AirCast</div>
+            <div class="s-sub">手机的声音，交给音箱</div>
+            <div class="pill"><span class="live"></span>正在投送 · 客厅 HomePod</div>
+
+            <div class="s-card">
+              <div class="s-row">
+                <span class="s-k">客厅 HomePod</span>
+                <span class="s-v">192.168.1.24</span>
+              </div>
+              <div class="s-row">
+                <span class="s-k">手机静音</span>
+                <span class="s-v">已开启</span>
+              </div>
+            </div>
+
+            <div class="s-card">
+              <div class="s-row">
+                <span class="s-k">音箱音量</span>
+                <span class="s-v">64%</span>
+              </div>
+              <div class="s-bar"><i></i></div>
+            </div>
+
+            <div class="spacer"></div>
+            <div class="s-btn">停止投送</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption wrap">界面示意图 —— 按应用真实布局与液态玻璃材质绘制。</p>
+  </section>
+
+  <!-- ============ features ============ -->
+  <section id="features">
+    <div class="wrap">
+      <p class="eyebrow reveal">能做什么</p>
+      <h2 class="reveal">一个手机上就能跑完的投送链路</h2>
+      <p class="lede reveal">不是遥控器，也不是中转服务：声音从播放它的那台手机出发，直接进音箱。</p>
+
+      <div class="grid g3">
+        <article class="card feat reveal">
+          <div class="ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="19" cy="16" r="3"/></svg>
+          </div>
+          <h3>任何应用的声音</h3>
+          <p>音乐、播客、有声书、视频、通话 —— 只要它在手机外放，就能被采集投出去。</p>
+        </article>
+
+        <article class="card feat reveal">
+          <div class="ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.2-4.2"/><path d="M11 8v6M8 11h6"/></svg>
+          </div>
+          <h3>自动发现音箱</h3>
+          <p>通过 mDNS / Bonjour 扫描 <code>_airplay._tcp</code>，列表里点一下就连；扫不到也可以手输 IP。</p>
+        </article>
+
+        <article class="card feat reveal">
+          <div class="ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h3l5 4V5L7 9H4Z"/><path d="M17 9a4 4 0 0 1 0 6"/><path d="M20 6a8 8 0 0 1 0 12"/></svg>
+          </div>
+          <h3>音量键交给音箱</h3>
+          <p>投送期间按音量键调的是音箱，不是手机；屏幕上还有 +/− 作为兜底。</p>
+        </article>
+
+        <article class="card feat reveal">
+          <div class="ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h3l5 4V5L7 9H4Z"/><path d="m16 9 6 6M22 9l-6 6"/></svg>
+          </div>
+          <h3>手机扬声器同步静音</h3>
+          <p>声音只在音箱里响，不会两边都放。哪些路径能自动恢复、哪些要手动点，文档写得很清楚。</p>
+        </article>
+
+        <article class="card feat reveal">
+          <div class="ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2.4"/><path d="M8 20h8"/><path d="M12 16v4"/></svg>
+          </div>
+          <h3>不需要任何主机</h3>
+          <p>没有树莓派、没有 NAS、没有桌面端在后台跑。关掉电脑也照样投。</p>
+        </article>
+
+        <article class="card feat reveal">
+          <div class="ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4.5 6v6c0 4.4 3.1 7.9 7.5 9 4.4-1.1 7.5-4.6 7.5-9V6L12 3Z"/><path d="m9 12 2.2 2.2L15.5 10"/></svg>
+          </div>
+          <h3>零云端</h3>
+          <p>没有网络请求以外的东西：除了局域网里的音箱，应用不和任何服务器说话。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ how ============ -->
+  <section id="how">
+    <div class="wrap">
+      <p class="eyebrow reveal">工作原理</p>
+      <h2 class="reveal">四步，全部在手机里完成</h2>
+      <p class="lede reveal">
+        AudioPlaybackCapture 在 <code>mediaProjection</code> 前台服务里抓 PCM，经 JNI 进环形缓冲，
+        由原生线程按 AirPlay 2 的节奏推给音箱。协议栈是仓库内自带的 airplay2-sender-cpp。
+      </p>
+
+      <div class="flow">
+        <article class="card step reveal">
+          <div class="n">STEP 01</div>
+          <h3>采集</h3>
+          <p>系统弹出一次录制授权，之后整段会话都在前台服务里抓音频。</p>
+        </article>
+        <article class="card step reveal">
+          <div class="n">STEP 02</div>
+          <h3>过桥</h3>
+          <p>PCM 帧经 JNI 进入环形缓冲，Java 侧不碰音频数据本身。</p>
+        </article>
+        <article class="card step reveal">
+          <div class="n">STEP 03</div>
+          <h3>投送</h3>
+          <p>原生线程把缓冲按 RTP 时间线推给 AirPlay 2 接收端，密钥对在本地派生。</p>
+        </article>
+        <article class="card step reveal">
+          <div class="n">STEP 04</div>
+          <h3>收听</h3>
+          <p>延迟约 2–3 秒，这是 AirPlay 协议自身的缓冲，不是应用额外加的。</p>
+        </article>
+      </div>
+
+      <div class="card reveal" style="margin-top:16px">
+        <div class="grid g2">
+          <div>
+            <h3 style="margin:0 0 8px; font-size:16px">两份补丁，换来稳定</h3>
+            <p style="margin:0; font-size:14px; color:var(--muted)">
+              HomePod 走的那条配对路径上，上游只派生控制通道密钥，事件通道没被加钥，接收端大约 30 秒后
+              就会踢掉会话 —— 哪怕音频一直在流。AirCast 在那条路径上把 Events 密钥也派生出来。
+            </p>
+          </div>
+          <div>
+            <h3 style="margin:0 0 8px; font-size:16px">时钟漂移</h3>
+            <p style="margin:0; font-size:14px; color:var(--muted)">
+              连接阶段把缓冲排到约 0.25 秒，握手不背旧包袱；进入播放后，队列超过 1.6 秒就做一次小幅拼接，
+              吸收两端时钟差。
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ interface ============ -->
+  <section id="interface">
+    <div class="wrap">
+      <p class="eyebrow reveal">界面</p>
+      <h2 class="reveal">一块会呼吸的液态玻璃</h2>
+      <p class="lede reveal">
+        整套界面是代码画出来的，没有 XML 布局、没有贴图：半透明圆角板浮在缓慢漂移的极光背景上，
+        高光带、内阴影、边缘折射和四角聚光都按真实光照算，亮暗跟随系统。
+      </p>
+      <div class="grid g3">
+        <article class="card feat reveal">
+          <h3>目标选择和动作分离</h3>
+          <p>音箱换用底部浮层，选中就收起；开始/停止永远钉在拇指够得到的地方，不会被滚动带走。</p>
+        </article>
+        <article class="card feat reveal">
+          <h3>一个状态源</h3>
+          <p>空闲 / 发现 / 连接 / 投送 / 停止 / 出错，六态集中在一个状态机里，通知栏结束的投送也会立刻反映到界面。</p>
+        </article>
+        <article class="card feat reveal">
+          <h3>为拇指和读屏调过</h3>
+          <p>可点区域最小 48dp，开关向读屏报告真实的选中态，所有文案走资源文件，中英双语。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ download ============ -->
+  <section id="download">
+    <div class="wrap">
+      <p class="eyebrow reveal">下载与安装</p>
+      <h2 class="reveal">v1.0.0</h2>
+      <p class="lede reveal">首个公开版本，签名发布包。arm64-v8a，Android 10 及以上。</p>
+
+      <div class="dl">
+        <div class="card dl-main reveal">
+          <h3>AirCast 1.0.0</h3>
+          <p>安装包约 4.3 MB。装好之后打开，选音箱，点开始，系统问一次录制授权，声音就过去了。</p>
+          <a class="btn btn-primary" href="https://github.com/brian007-ai/aircast/releases/download/v1.0.0/AirCast-1.0.0.apk">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+            下载 AirCast-1.0.0.apk
+          </a>
+          <div class="file">
+            <span><b>SHA-256</b></span>
+            <code>12991CF77579B7B568BCF8CB74CC4E69C50F9CAB2BF36A9AC91AEB8F1DF00EBA</code>
+          </div>
+          <div class="file" style="margin-top:10px">
+            <span><b>要求</b></span>
+            <span>Android 10 (API 29)+ · arm64-v8a · 与音箱在同一 Wi-Fi · 每次投送一次录制授权</span>
+          </div>
+        </div>
+
+        <div class="card side reveal">
+          <h3>安装步骤</h3>
+          <ol class="steps">
+            <li>用手机打开本页，点上面的<b>下载 APK</b>。</li>
+            <li>系统提示"未知来源"时，允许浏览器安装应用。</li>
+            <li>装完打开 AirCast，点<b>选择音箱</b>，在浮层里挑你的接收器。</li>
+            <li>点<b>开始投送</b>，在系统弹窗里允许录制 —— 这一步平台强制，每次会话一次。</li>
+            <li>停止时点屏幕上的<b>停止投送</b>，手机音量会自动恢复。</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ limits ============ -->
+  <section id="limits">
+    <div class="wrap">
+      <p class="eyebrow reveal">先说清楚</p>
+      <h2 class="reveal">已知限制</h2>
+      <p class="lede reveal">这些不是 bug 列表，是当前版本的边界；写在这里，免得装完才发现。</p>
+      <div class="grid g2">
+        <div class="card reveal">
+          <ul class="plain">
+            <li><b>拒绝被采集的应用只有静音。</b>DRM 与流媒体（Netflix 之类）主动关掉了播放采集，任何应用都抓不到。</li>
+            <li><b>按用途采集，不按应用。</b>任何在播媒体音频的应用都会被一起投出去；系统给的"单个应用 / 整个屏幕"选项不会缩小采集范围（本应用从不着录屏幕）。</li>
+            <li><b>延迟设置对下一次生效。</b>接收端的抖动缓冲在 SETUP 阶段协商，会话中途改不了。</li>
+          </ul>
+        </div>
+        <div class="card reveal">
+          <ul class="plain">
+            <li><b>断线不会自动重连。</b>接收端掉线后需要重新开始一次投送。</li>
+            <li><b>音量键可能被别的应用抢走。</b>如果别的应用占着媒体会话，音量键调的可能是它，用屏幕上的 +/−。</li>
+            <li><b>实际采样率以系统为准。</b>申请 44.1 kHz 拿到 48 kHz 是常事，应用会读回真实值再对齐节奏。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ privacy + credits ============ -->
+  <section id="privacy">
+    <div class="wrap">
+      <div class="grid g2">
+        <div class="card reveal">
+          <p class="eyebrow" style="margin-bottom:10px">隐私</p>
+          <h3 style="margin:0 0 10px; font-size:18px">不收集，不存储，不上传</h3>
+          <p style="margin:0; font-size:14px; color:var(--muted)">
+            没有账号体系，没有统计 SDK，除了和局域网里的 AirPlay 接收器通信，应用不与任何服务器建立连接。
+            录音权限只用于把声音实时转成投送流，不落盘。
+          </p>
+        </div>
+        <div class="card credits reveal">
+          <p class="eyebrow" style="margin-bottom:10px">署名与许可</p>
+          <h3 style="margin:0 0 10px; font-size:18px">Apache-2.0</h3>
+          <p>
+            本应用基于上游 AirCast（作者 Wesley DeLand）重写了界面与应用层代码，原始版权与全部第三方
+            声明都保留在 <a href="https://github.com/brian007-ai/aircast/blob/main/NOTICE" target="_blank" rel="noopener">NOTICE</a> 中。
+          </p>
+          <p>
+            投送协议来自 <a href="https://github.com/akustikrausch/airplay2-sender-cpp" target="_blank" rel="noopener">airplay2-sender-cpp</a>
+            （Apache-2.0），加密来自 <a href="https://github.com/Mbed-TLS/mbedtls" target="_blank" rel="noopener">Mbed TLS</a>。
+          </p>
+          <p style="color:var(--faint); font-size:12.5px">
+            AirPlay、HomePod、Sonos、Apple TV 是各自权利人的商标，此处仅用于说明兼容性。本项目与 Apple 及任何音箱厂商无关联。
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>© 2026 Brian · Apache-2.0</span>
+    <div class="foot-links">
+      <a href="https://github.com/brian007-ai/aircast" target="_blank" rel="noopener">源码</a>
+      <a href="https://github.com/brian007-ai/aircast/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener">架构</a>
+      <a href="https://github.com/brian007-ai/aircast/blob/main/docs/BUILD.md" target="_blank" rel="noopener">构建</a>
+      <a href="https://github.com/brian007-ai/aircast/issues" target="_blank" rel="noopener">问题反馈</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var nav = document.getElementById('nav');
+    var onScroll = function () {
+      nav.classList.toggle('scrolled', window.scrollY > 8);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    var items = document.querySelectorAll('.reveal');
+    if (!('IntersectionObserver' in window)) {
+      items.forEach(function (el) { el.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        var el = entry.target;
+        var siblings = Array.prototype.slice.call(el.parentNode.children).indexOf(el);
+        el.style.transitionDelay = Math.min(siblings, 5) * 70 + 'ms';
+        el.classList.add('in');
+        io.unobserve(el);
+      });
+    }, { rootMargin: '0px 0px -12% 0px', threshold: 0.12 });
+    items.forEach(function (el) { io.observe(el); });
+  })();
+</script>
+</body>
+</html>
